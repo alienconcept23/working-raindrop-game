@@ -1,0 +1,134 @@
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+
+#define LEFT_BUTTON_PIN A0
+#define RIGHT_BUTTON_PIN A1
+
+#define BUCKET_COLOR SSD1306_WHITE
+#define RAINDROP_COLOR SSD1306_WHITE
+
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+
+int bucketWidth = 20;
+int bucketHeight = 10;
+int bucketPosition = SCREEN_WIDTH / 2 - bucketWidth / 2;
+int raindropX, raindropY;
+int raindropsCaught = 0;
+int targetRaindrops = 20; // Increased the target raindrops
+int raindropSpeed = 2;    // Increased the speed of raindrops
+int bucketSpeed = 5;      // Increased the speed of the bucket movement
+
+void setup() {
+  Serial.begin(9600);
+
+  pinMode(LEFT_BUTTON_PIN, INPUT_PULLUP);
+  pinMode(RIGHT_BUTTON_PIN, INPUT_PULLUP);
+
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for (;;)
+      ;
+  }
+
+  showStartScreen();
+  delay(2000);
+  display.clearDisplay();
+}
+
+void loop() {
+  readButtonInputs();
+
+  if (raindropsCaught < targetRaindrops) {
+    playGame();
+  } else {
+    showYouWinScreen();
+  }
+}
+
+void playGame() {
+  display.clearDisplay();
+  // Draw open bucket (rectangle outline)
+  display.drawRect(bucketPosition, SCREEN_HEIGHT - bucketHeight, bucketWidth, bucketHeight, BUCKET_COLOR);
+
+  raindropY += raindropSpeed; // Increased the raindrop speed
+
+  if (raindropY > SCREEN_HEIGHT) {
+    raindropX = random(SCREEN_WIDTH);
+    raindropY = 0;
+  }
+
+  display.drawPixel(raindropX, raindropY, RAINDROP_COLOR);
+
+  if (raindropY > SCREEN_HEIGHT - bucketHeight && raindropX > bucketPosition && raindropX < bucketPosition + bucketWidth) {
+    raindropsCaught++;
+    raindropY = -10; // Move the raindrop off the screen
+  }
+
+  display.display();
+  delay(30); // Adjust delay for game speed
+}
+
+void showYouWinScreen() {
+  display.clearDisplay();
+  display.setTextSize(2);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(10, 20);
+  display.println("You Win!");
+  display.setCursor(10, 40);
+  display.print("Raindrops: ");
+  display.println(raindropsCaught);
+  display.display();
+}
+
+void showStartScreen() {
+  display.clearDisplay();
+  display.setTextSize(2);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(10, 20);
+  display.println("Press any button");
+  display.setCursor(10, 40);
+  display.print("to start!");
+  display.display();
+}
+
+void readButtonInputs() {
+  int leftReading = digitalRead(LEFT_BUTTON_PIN);
+  int rightReading = digitalRead(RIGHT_BUTTON_PIN);
+
+  if (leftReading == LOW) {
+    // Left button is pressed
+    moveBucketLeft();
+  }
+
+  if (rightReading == LOW) {
+    // Right button is pressed
+    moveBucketRight();
+  }
+
+  Serial.print("Left Button State: ");
+  Serial.println(leftReading);
+  Serial.print("Right Button State: ");
+  Serial.println(rightReading);
+
+  delay(100); // Adjust delay as needed
+}
+
+void moveBucketLeft() {
+  // Add logic for moving the bucket to the left
+  bucketPosition -= bucketSpeed; // Increased the bucket movement speed
+  if (bucketPosition < 0) {
+    bucketPosition = 0;
+  }
+}
+
+void moveBucketRight() {
+  // Add logic for moving the bucket to the right
+  bucketPosition += bucketSpeed; // Increased the bucket movement speed
+  if (bucketPosition > SCREEN_WIDTH - bucketWidth) {
+    bucketPosition = SCREEN_WIDTH - bucketWidth;
+  }
+}
